@@ -1,5 +1,7 @@
 #include <libserialport.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define DEVICE_PATH "/dev/ttyUSB0"
 
@@ -30,6 +32,25 @@ int connect_to_device(const char *device_path) {
   return 1;
 }
 
+int enter_bitbang_mode() {
+  uint8_t cmd = 0x00;
+  char response[6] = {0};
+
+  for (int i = 0; i < 20; i++) {
+    sp_blocking_write(port, &cmd, 1, 100);
+  }
+
+  sp_blocking_read(port, response, 5, 500);
+
+  if (strncmp(response, "BBIO1", 5) == 0) {
+    printf("Entered bitbang mode\n");
+    return 1;
+  }
+
+  fprintf(stderr, "Failed to enter bitbang mode\n");
+  return 0;
+}
+
 int main(void) {
   printf("Attempting connection to %s\n\n", DEVICE_PATH);
 
@@ -38,5 +59,14 @@ int main(void) {
     return 1;
   }
   printf("SUCCESS\n\n");
+
+  printf("Attempting to Enter BitBang mode: \n\n");
+
+  if (!enter_bitbang_mode()) {
+    printf("FAIL\n\n");
+    return 1;
+  }
+  printf("SUCCESS\n\n");
+
   return 0;
 }
