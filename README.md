@@ -22,10 +22,13 @@ clang -o bitsniff bitsniff.c -lserialport -Wall -Wextra
 ```
 
 -o bitsniff — output binary name
+
 -lserialport — link against libserialport
+
 -Wall -Wextra — enable all warnings
 
 Run:
+
 `./bitsniff -d /dev/ttyUSB0`
 
 ## Hardware constraints and known limitations
