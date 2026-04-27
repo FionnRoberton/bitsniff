@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #define DEVICE_PATH "/dev/ttyUSB0"
 
@@ -51,6 +52,35 @@ int enter_bitbang_mode() {
   return 0;
 }
 
+void detect_transition() {
+  uint8_t cmd = 0x01;
+  uint8_t response;
+
+  sp_blocking_write(port, &cmd, 1, 100);
+  sp_blocking_read(port, &response, 1, 100);
+  uint8_t prev = (response >> 4) & 0x01;
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  long prev_micros = ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
+
+  for (int i = 0; i < 1001; i++) {
+    sp_blocking_write(port, &cmd, 1, 100);
+    sp_blocking_read(port, &response, 1, 100);
+    uint8_t current = (response >> 4) & 0x01;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    long current_micros = ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
+
+    if (prev != current) {
+      long delta_us = current_micros - prev_micros;
+
+      printf("TRANSITION DETECTED, pulse width: %ld us\n\n", delta_us);
+
+      prev = current;
+      prev_micros = current_micros;
+    }
+  }
+}
+
 int main(void) {
   printf("Attempting connection to %s\n\n", DEVICE_PATH);
 
@@ -67,6 +97,8 @@ int main(void) {
     return 1;
   }
   printf("SUCCESS\n\n");
+
+  detect_transition();
 
   return 0;
 }
